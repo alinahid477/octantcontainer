@@ -69,13 +69,13 @@ There're few ways to get this kube config file (depending on where your cluster 
     Using the cli tools you can generate the kubeconfig file here (because this directory is mounted). Check this post here: https://github.com/alinahid477/vsphere-tkg-tunnel/tree/main
 
     **.env**
-    - BASTION_HOST=<the jump or bastion host ip or name. OR leave it blank if you have direct access to kubernetes endpoint and do not need a bastion host>
-    - BASTION_USERNAME= <username for login into the above host. Leave it blank if there is no bastion host.>
-    - TKG_SUPERVISOR_ENDPOINT= <find the supervisor endpoint from vsphere (eg: Menu>Workload management>clusters>Control Plane Node IP Address)>
-    - TKG_VSPHERE_CLUSTER_NAME=<the k8s cluster your are trying to access>
-    - TKG_VSPHERE_CLUSTER_ENDPOINT=<endpoint ip or hostname of the above cluster. Grab it from your vsphere environment. (Menu>Workload Management>Namespaces>Select the namespace where the k8s cluster resides>Compute>VMware Resources>Tanzu Kubernetes Clusters>Control Plane Address[grab the ip of the desired k8s])>
-    - TKG_VSPHERE_CLUSTER_USERNAME=<username for accessing the cluster>
-    - TKG_VSPHERE_CLUSTER_PASSWORD=<password for accessing the cluster>
+    - BASTION_HOST={the jump or bastion host ip or name. OR leave it blank if you have direct access to kubernetes endpoint and do not need a bastion host}
+    - BASTION_USERNAME={username for login into the above host. Leave it blank if there is no bastion host.}
+    - TKG_SUPERVISOR_ENDPOINT={find the supervisor endpoint from vsphere (eg: Menu>Workload management>clusters>Control Plane Node IP Address)}
+    - TKG_VSPHERE_CLUSTER_NAME={the k8s cluster your are trying to access}
+    - TKG_VSPHERE_CLUSTER_ENDPOINT={endpoint ip or hostname of the above cluster. Grab it from your vsphere environment. (Menu>Workload Management>Namespaces>Select the namespace where the k8s cluster resides>Compute>VMware Resources>Tanzu Kubernetes Clusters>Control Plane Address[grab the ip of the desired k8s])}
+    - TKG_VSPHERE_CLUSTER_USERNAME={username for accessing the cluster}
+    - TKG_VSPHERE_CLUSTER_PASSWORD={password for accessing the cluster}
 
     
 That's it. Follow along the next steps to tell octant to use ssh tunnel.
