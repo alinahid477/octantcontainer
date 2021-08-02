@@ -31,4 +31,4 @@ RUN chmod +x /usr/local/bin/kubectl-vsphere
 
 # VOLUME ["/root/.kube"]
 
-ENTRYPOINT ["octant"]
+ENTRYPOINT ["/usr/local/init.sh"]
