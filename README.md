@@ -1,6 +1,6 @@
 # Octant (What)
 
-Personally, I think this is a great tool to visualise what is in a k8s cluster. You can also use it to deploy k8s yaml files. But I feel much confortable doing so through pipeline or using kubectl.
+Octant is a great tool to visualise what is in a k8s cluster. You can also use it to deploy k8s yaml files. But I feel much confortable doing so through pipeline or using kubectl.
 
 I way see it, octant is a k8s dashboard on steroid. (not to mention the native k8s dashboard doesn't get much love and isnt really friendly to navigate or visualise of a cluster and components inside a k8s cluster)
 
@@ -25,7 +25,7 @@ Running octant in docker because:
 # How
 
 
-## Prepare: Get the cli tools
+## Prepare: cli tools and .ssh private key
 
 The below may be required
 - **cli tools (optional)**
@@ -43,13 +43,14 @@ The below may be required
 
 
 
-## Get the kubeconfig
+## Prepare: kubeconfig
 
 Octant needs a k8s config file to access the k8s cluster and display its components/objects (to do what it does). The way it does it is through the kube config file.
 
 *Kubeconfig is a yaml file that can contain connection details to multiple k8s clusters. When you do `kubectl login` on your local machine or bastion host/jump host this file is auto created by kubectl. This is a yaml file and you can also manually create or merge multiple kubeconfig file and provide to octant.* 
 
 There're few ways to get this kube config file (depending on where your cluster is and how you access it)
+
 - **Your local kubeconfig file (usually located at ~/.kube/config)**
 
     This is usually the typical way when you can access k8s cluster from your local machine (eg: The k8s cluster endpoint is public, k8s cluster is running on your local machine like minikube)
@@ -64,11 +65,12 @@ There're few ways to get this kube config file (depending on where your cluster 
 
 - **Generate on the fly**
 
-    This docker container also comes with a init script which in the absense of the ~/.kube/config file will attempt to create one based on the information supplied via the .env file. 
+    Using the cli tools you can generate the kubeconfig file here (because this directory is mounted). Check this post here: https://github.com/alinahid477/vsphere-tkg-tunnel/tree/main. This process is automated in this docker container. 
+    
+    In the absense of the .kube/config file this container will attempt to create one based on the information supplied via the .env file.
 
-    Using the cli tools you can generate the kubeconfig file here (because this directory is mounted). Check this post here: https://github.com/alinahid477/vsphere-tkg-tunnel/tree/main
+    for the .env file rename the .env.sample to .env *(`mv .env.sample .env`)*  and fill out the below details:
 
-    **.env**
     - BASTION_HOST={the jump or bastion host ip or name. OR leave it blank if you have direct access to kubernetes endpoint and do not need a bastion host}
     - BASTION_USERNAME={username for login into the above host. Leave it blank if there is no bastion host.}
     - TKG_SUPERVISOR_ENDPOINT={find the supervisor endpoint from vsphere (eg: Menu>Workload management>clusters>Control Plane Node IP Address)}
@@ -99,16 +101,20 @@ docker build . -t octant
 ### for remote clusters over ssh tunnel
 
 `docker run -it --rm -p 51234:51234 -v ${PWD}:/root/ --add-host kubernetes:127.0.0.1 --name octant octant`
+
 How / Why so? Read here: https://github.com/alinahid477/VMW/tree/main/tunnel
 
 ## This container for TMC provisioned clusters
 The main reason why I am not running this container in background mode is so that when I am accessing TMC supplied kubeconfig yaml (or merged yamls) for octant it will 
 - make use TMC cli 
 - and ask for TMC api token
+
 This will show up in the command prompt. Supply the token when asked.
 
 # That's it.
 You should now have octact running on port 51234.
+
 From your local browser it should be accessible at http://localhost:51234
+
 Fast and easy way to start octant-ing.
 
