@@ -43,6 +43,7 @@ mvnw.cmd
 .bash_history
 .local
 *.nogit.*
+.vmware-cna-saas
 
 binaries/*
 !binaries/.gitkeep 

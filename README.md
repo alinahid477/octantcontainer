@@ -78,6 +78,9 @@ There're few ways to get this kube config file (depending on where your cluster 
     - TKG_VSPHERE_CLUSTER_ENDPOINT={endpoint ip or hostname of the above cluster. Grab it from your vsphere environment. (Menu>Workload Management>Namespaces>Select the namespace where the k8s cluster resides>Compute>VMware Resources>Tanzu Kubernetes Clusters>Control Plane Address[grab the ip of the desired k8s])}
     - TKG_VSPHERE_CLUSTER_USERNAME={username for accessing the cluster}
     - TKG_VSPHERE_CLUSTER_PASSWORD={password for accessing the cluster}
+    - TMC_API_TOKEN=
+    - BASTION_TUNNELS=eg:>6443:endpoint-1-ip:6443,6444:endpoint-2-ip:6443 { **Format:** -l localhostport:remoteip:remoteport . **notice** the localhost ports are all different but the report port is static, k8s api }
+    - KUBE_CONFIG=custom|vsphere {use "custom" value when it is TMC provided login. Also use custom if you have obtained the .kube file some other way. }
 
     
 That's it. Follow along the next steps to tell octant to use ssh tunnel.
