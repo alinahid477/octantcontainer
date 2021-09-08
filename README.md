@@ -1,5 +1,7 @@
 # Octant (What)
 
+<img src="images/logo.png" alt="Octant Merlin" width=200 height=210/>
+
 Octant is a great tool to visualise what is in a k8s cluster. You can also use it to deploy k8s yaml files. But I feel much confortable doing so through pipeline or using kubectl.
 
 I way see it, octant is a k8s dashboard on steroid. (not to mention the native k8s dashboard doesn't get much love and isnt really friendly to navigate or visualise of a cluster and components inside a k8s cluster)
