@@ -43,7 +43,7 @@ else
         then
             rm /root/.kube/config
             rm -R /root/.kube/cache
-            kubectl vsphere login --tanzu-kubernetes-cluster-name $TKG_VSPHERE_CLUSTER_NAME --server kubernetes --insecure-skip-tls-verify -u $TKG_VSPHERE_CLUSTER_USERNAME
+            kubectl vsphere login --tanzu-kubernetes-cluster-name $TKG_VSPHERE_CLUSTER_NAME --server $TKG_SUPERVISOR_ENDPOINT --insecure-skip-tls-verify -u $TKG_VSPHERE_CLUSTER_USERNAME
             kubectl config use-context $TKG_VSPHERE_CLUSTER_NAME
         else
             printf "\n\n\n***********Creating Tunnel through bastion $BASTION_USERNAME@$BASTION_HOST ...*************\n"
