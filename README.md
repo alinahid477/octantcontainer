@@ -1,5 +1,7 @@
 # Octant (What)
 
+***This repo is a part of Merlin initiative (https://github.com/alinahid477/merlin)***
+
 <img src="images/logo.png" alt="Octant Merlin" width=200 height=210/>
 
 Octant is a great tool to visualise what is in a k8s cluster. You can also use it to deploy k8s yaml files. But I feel much confortable doing so through pipeline or using kubectl.
