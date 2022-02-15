@@ -2,13 +2,19 @@
 export $(cat /root/.env | xargs)
 export KUBECTL_VSPHERE_PASSWORD=$(echo $TKG_VSPHERE_CLUSTER_PASSWORD | xargs)
 chmod 600 /root/.ssh/id_rsa
-printf "\n\n\n***********Starting tunnel...*************\n"
 
+printf "\n\n\n***********Starting octant init...*************\n"
 
-
-if [[ $KUBE_CONFIG == "custom" ]]
+if [[ -n $BASTION_HOST ]]
 then
-    if [[ $BASTION_TUNNELS == *[,]* ]]
+    printf "\nBastion host specified..Establishing tunnels...\n"
+    if [[ ! -f $HOME/.ssh/id_rsa ]]
+    then
+        printf "\n\nERROR: Bastion host specified. BUT no id_rsa file supplied.\nYou must place a id_rsa file in .ssh dir.Exit....\n\n"
+    fi
+    ssh-keyscan $BASTION_HOST > /root/.ssh/known_hosts
+
+    if [[ -n $BASTION_TUNNELS && $BASTION_TUNNELS == *[,]* ]]
     then
         printf "\nMultiple bastion tunnels specified\n\n"
         tunnelstr=""
@@ -24,79 +30,138 @@ then
         printf "\nssh -i /root/.ssh/id_rsa -4 -fNT -L $BASTION_TUNNELS $BASTION_USERNAME@$BASTION_HOST\n"
         ssh -i /root/.ssh/id_rsa -4 -fNT -L $BASTION_TUNNELS $BASTION_USERNAME@$BASTION_HOST
     fi
-else
-    echo "Not a custom kubeconfig. Going to perform kubectl login"
-    EXISTING_JWT_EXP=$(awk '/users/{flag=1} flag && /'$TKG_VSPHERE_CLUSTER_ENDPOINT'/{flag2=1} flag2 && /token:/ {print $NF;exit}' /root/.kube/config | jq -R 'split(".") | .[1] | @base64d | fromjson | .exp')
 
-    if [ -z "$EXISTING_JWT_EXP" ]
+    if [[ -n $TKG_SUPERVISOR_ENDPOINT ]]
     then
-        EXISTING_JWT_EXP=$(date  --date="yesterday" +%s)
+        printf "\nEstablishing tunnel for login on 443 for $TKG_SUPERVISOR_ENDPOINT through $BASTION_USERNAME@$BASTION_HOST...\n"
+        ssh -i /root/.ssh/id_rsa -4 -fNT -L 443:$TKG_SUPERVISOR_ENDPOINT:443 $BASTION_USERNAME@$BASTION_HOST
     fi
-    CURRENT_DATE=$(date +%s)
 
-
-    if [ "$CURRENT_DATE" -gt "$EXISTING_JWT_EXP" ]
-    then
-        printf "\n\n\n**********vSphere Cluster login...*************\n"
-
-        if [ -z "$BASTION_HOST" ]
-        then
-            rm /root/.kube/config
-            rm -R /root/.kube/cache
-            kubectl vsphere login --tanzu-kubernetes-cluster-name $TKG_VSPHERE_CLUSTER_NAME --server $TKG_SUPERVISOR_ENDPOINT --insecure-skip-tls-verify -u $TKG_VSPHERE_CLUSTER_USERNAME
-            kubectl config use-context $TKG_VSPHERE_CLUSTER_NAME
-        else
-            printf "\n\n\n***********Creating Tunnel through bastion $BASTION_USERNAME@$BASTION_HOST ...*************\n"
-            ssh-keyscan $BASTION_HOST > /root/.ssh/known_hosts
-            ssh -i /root/.ssh/id_rsa -4 -fNT -L 443:$TKG_SUPERVISOR_ENDPOINT:443 $BASTION_USERNAME@$BASTION_HOST
-            rm /root/.kube/config
-            rm -R /root/.kube/cache
-            # echo "debug: kubectl vsphere login --tanzu-kubernetes-cluster-name $TKG_VSPHERE_CLUSTER_NAME --server kubernetes --insecure-skip-tls-verify -u $TKG_VSPHERE_CLUSTER_USERNAME"
-
-            if [[ ! -z $TKG_VSPHERE_CLUSTERS ]]
-            then
-                printf "\n\n\n***********Muliple clusters found via TKG_VSPHERE_CLUSTERS=$TKG_VSPHERE_CLUSTERS...*************\n"
-                echo $TKG_VSPHERE_CLUSTERS | sed -n 1'p' | tr ',' '\n' | while read vsphere_cluster; do
-                    
-                    vsphere_cluster_name=$(echo $vsphere_cluster | cut -f1 -d\|)
-                    vsphere_cluster_ip=$(echo $vsphere_cluster | cut -f2 -d\|)
-                    
-                    printf "\n\n\n***********Login $vsphere_cluster_name=$vsphere_cluster_ip...*************\n"
-                    kubectl vsphere login --tanzu-kubernetes-cluster-name $vsphere_cluster_name --server kubernetes --insecure-skip-tls-verify -u $TKG_VSPHERE_CLUSTER_USERNAME
-                    
-                    printf "\n\n\n***********Adjust kubeconfig $vsphere_cluster_name=$vsphere_cluster_ip...*************\n"
-                    sed -i 's/kubernetes/'$TKG_SUPERVISOR_ENDPOINT'/g' ~/.kube/config
-                    sed -i '0,/'$vsphere_cluster_ip'/s//kubernetes/' ~/.kube/config
-                    mv ~/.kube/config ~/.kube/config-$vsphere_cluster_name
-                    
-                    sleep 5
-                done
-                ssh -i /root/.ssh/id_rsa -D 6443 $BASTION_USERNAME@$BASTION_HOST
-            else
-                printf "\n\n\n***********Authenticating to cluster $TKG_VSPHERE_CLUSTER_NAME-->IP:$TKG_VSPHERE_CLUSTER_ENDPOINT  ...*************\n"
-                printf "\n\n\n***********Login $TKG_VSPHERE_CLUSTER_NAME...*************\n"
-                kubectl vsphere login --tanzu-kubernetes-cluster-name $TKG_VSPHERE_CLUSTER_NAME --server kubernetes --insecure-skip-tls-verify -u $TKG_VSPHERE_CLUSTER_USERNAME
-                
-                printf "\n\n\n***********Adjusting your kubeconfig...*************\n"
-
-                sed -i 's/kubernetes/'$TKG_SUPERVISOR_ENDPOINT'/g' ~/.kube/config
-                kubectl config use-context $TKG_VSPHERE_CLUSTER_NAME
-
-                sed -i '0,/'$TKG_VSPHERE_CLUSTER_ENDPOINT'/s//kubernetes/' ~/.kube/config
-                ssh -i /root/.ssh/id_rsa -4 -fNT -L 6443:$TKG_VSPHERE_CLUSTER_ENDPOINT:6443 $BASTION_USERNAME@$BASTION_HOST
-            fi
-
-                    
-        fi
-    else
-        printf "\n\n\nCuurent kubeconfig has not expired. Using the existing one found at .kube/config\n"
-        if [ -n "$BASTION_HOST" ]
-        then
-            printf "\n\n\n***********Creating Tunnel through bastion $BASTION_USERNAME@$BASTION_HOST ...*************\n"
-            ssh -i /root/.ssh/id_rsa -4 -fNT -L 6443:$TKG_VSPHERE_CLUSTER_ENDPOINT:6443 $BASTION_USERNAME@$BASTION_HOST
-        fi
-    fi
+    printf "\nTunneling...COMPLETE\n"
 fi
+
+
+
+
+if [[ $KUBE_CONFIG == "custom" ]]
+then
+    printf "\n\nCustom kubeconfig. Going to use kubeconfig as it is in $HOME/.kube dir...\n\n"
+else
+    printf "\n\nNot a custom kubeconfig. Going to perform kubectl login\n\n"
+
+
+    istokenexpired='n'
+    # eg: cluster1:192.168.220.9,cluster2:192.168.220.7
+    if [[ $TKG_VSPHERE_CLUSTERS == *[,]* ]]
+    then
+        printf "\nMultiple TKG_VSPHERE_CLUSTERS specified.....\n"
+        printf "Checking token validity of the existing kubeconfig for all endpoints\n"
+        
+        vsphere_clusters=(`echo $TKG_VSPHERE_CLUSTERS | tr "," "\n"`)
+        for vsphere_cluster in $vsphere_clusters
+        do
+            name_and_ip=(`echo $vsphere_cluster | tr ":" "\n"`)
+            endpoint=${name_and_ip[1]}
+        
+            EXISTING_JWT_EXP=$(awk '/users/{flag=1} flag && /'$endpoint'/{flag2=1} flag2 && /token:/ {print $NF;exit}' /root/.kube/config | jq -R 'split(".") | .[1] | @base64d | fromjson | .exp')
+
+            if [ -z "$EXISTING_JWT_EXP" ]
+            then
+                EXISTING_JWT_EXP=$(date  --date="yesterday" +%s)
+            fi
+            CURRENT_DATE=$(date +%s)
+
+
+            if [ "$CURRENT_DATE" -gt "$EXISTING_JWT_EXP" ]
+            then
+                istokenexpired='y'
+                printf "Token expired for endpoint: $endpoint. That's good enough. Skipping for the rest...\n"
+                break
+            fi        
+        done
+    else
+        # eg: 192.168.220.9
+        printf "\nSingle TKG_VSPHERE_CLUSTERS specified\n\n"
+        printf "\nChecking token validity in the existing kubeconfig for $TKG_VSPHERE_CLUSTERS\n"
+        name_and_ip=(`echo $vsphere_cluster | tr ":" "\n"`)
+        endpoint=${name_and_ip[1]}
+        EXISTING_JWT_EXP=$(awk '/users/{flag=1} flag && /'$endpoint'/{flag2=1} flag2 && /token:/ {print $NF;exit}' /root/.kube/config | jq -R 'split(".") | .[1] | @base64d | fromjson | .exp')
+
+        if [ -z "$EXISTING_JWT_EXP" ]
+        then
+            EXISTING_JWT_EXP=$(date  --date="yesterday" +%s)
+        fi
+        CURRENT_DATE=$(date +%s)
+
+
+        if [ "$CURRENT_DATE" -gt "$EXISTING_JWT_EXP" ]
+        then
+            istokenexpired='y'
+            printf "Token expired for endpoint: $endpoint....\n"
+            break
+        fi
+    fi
+
+    if [[ istokenexpired == 'y' ]]
+    then
+        rm /root/.kube/config
+        rm -R /root/.kube/cache
+    fi
+
+    printf "\n\n\n**********vSphere Cluster login...*************\n"
+
+    
+    if [[ $TKG_VSPHERE_CLUSTERS == *[,]* ]]
+    then
+        printf "\n\n\n***********Muliple clusters specified via TKG_VSPHERE_CLUSTERS=$TKG_VSPHERE_CLUSTERS...*************\n"
+
+
+        vsphere_clusters=(`echo $TKG_VSPHERE_CLUSTERS | tr "," "\n"`)
+        for vsphere_cluster in $vsphere_clusters
+        do
+            name_and_ip=(`echo $vsphere_cluster | tr ":" "\n"`)
+            vsphere_cluster_name=${name_and_ip[0]}
+            vsphere_cluster_ip=${name_and_ip[1]}
+            
+            printf "\n\n\n***********Login $vsphere_cluster_name=$vsphere_cluster_ip...*************\n"
+            kubectl vsphere login --tanzu-kubernetes-cluster-name $vsphere_cluster_name --server kubernetes --insecure-skip-tls-verify -u $TKG_VSPHERE_CLUSTER_USERNAME
+            
+            printf "\n\n\n***********Adjust kubeconfig $vsphere_cluster_name=$vsphere_cluster_ip...*************\n"
+            sed -i 's/kubernetes/'$TKG_SUPERVISOR_ENDPOINT'/g' ~/.kube/config
+            sed -i '0,/'$vsphere_cluster_ip'/s//kubernetes/' ~/.kube/config
+            mv ~/.kube/config ~/.kube/config-$vsphere_cluster_name
+            
+            sleep 2
+        done
+    else
+        printf "\n\n\n***********Single cluster specified via TKG_VSPHERE_CLUSTERS=$TKG_VSPHERE_CLUSTERS...*************\n"
+
+        name_and_ip=(`echo $TKG_VSPHERE_CLUSTERS | tr ":" "\n"`)
+        vsphere_cluster_name=${name_and_ip[0]}
+        vsphere_cluster_ip=${name_and_ip[1]}
+
+        printf "\n\n\n***********Authenticating to cluster $vsphere_cluster_name-->IP:$vsphere_cluster_ip  ...*************\n"
+        printf "\n\n\n***********Login $vsphere_cluster_name...*************\n"
+        kubectl vsphere login --tanzu-kubernetes-cluster-name $vsphere_cluster_name --server kubernetes --insecure-skip-tls-verify -u $TKG_VSPHERE_CLUSTER_USERNAME
+        
+        printf "\n\n\n***********Adjusting your kubeconfig...*************\n"
+
+        sed -i 's/kubernetes/'$TKG_SUPERVISOR_ENDPOINT'/g' ~/.kube/config
+        kubectl config use-context $TKG_VSPHERE_CLUSTER_NAME
+
+        sed -i '0,/'$vsphere_cluster_ip'/s//kubernetes/' ~/.kube/config
+        if [[ -z $BASTION_TUNNELS ]] 
+        then
+            ssh -i /root/.ssh/id_rsa -4 -fNT -L 6443:$vsphere_cluster_ip:6443 $BASTION_USERNAME@$BASTION_HOST
+        fi
+    fi
+
+fi
+
+
+
+
+    
 
 # printf "\n\n\n***********Verifying...*************\n"
 # kubectl get ns
