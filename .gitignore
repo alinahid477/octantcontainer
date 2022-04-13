@@ -47,7 +47,7 @@ mvnw.cmd
 
 binaries/*
 !binaries/.gitkeep 
-!binaries/init.sh
+!binaries/wizards
 .kube/*
 !.kube/.gitkeep 
 .ssh/*
