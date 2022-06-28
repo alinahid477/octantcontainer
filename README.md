@@ -26,7 +26,7 @@ Running octant in docker because:
 
 
 
-# How
+# Before you run it
 
 
 ## Prepare: cli tools and .ssh private key
@@ -61,7 +61,7 @@ There're few ways to get this kube config file (depending on where your cluster 
 
 - **TMC cluster access kubeconfig file (downloaded from TMC)**
     
-    When your cluster(s) is provisioned through TMC (Tanzu Mission Control) you can get a kubeconfig file from TMC. If there're multiple clusters then you can pretty much merge the contents.
+    When your cluster(s) is provisioned through TMC (Tanzu Mission Control) you can get a kubeconfig file from TMC. If there're multiple clusters then you can pretty much merge the contents (use `merlin -m -f <filename>`).
 
 - **From bastion host or Jump host**
     
@@ -84,39 +84,25 @@ There're few ways to get this kube config file (depending on where your cluster 
     - TKG_VSPHERE_CLUSTER_PASSWORD={password for accessing the cluster}
     - TMC_API_TOKEN=
     - BASTION_TUNNELS=eg:>6443:endpoint-1-ip:6443,6444:endpoint-2-ip:6443 { **Format:** -l localhostport:remoteip:remoteport . **notice** the localhost ports are all different but the report port is static, k8s api }
-    - KUBE_CONFIG=custom|vsphere {use "custom" value when it is TMC provided login. Also use custom if you have obtained the .kube file some other way. }
+    - KUBE_CONFIG=custom|vsphere {use "custom" value when it is TMC provided login or you are supplying kubeconfig file. Use `vsphere` when you are accessing `vsphere with tanzu` cluster via `kubectl-vsphere` tool. }
 
     
 That's it. Follow along the next steps to tell octant to use ssh tunnel.
 
 
-## Octant running in a docker container
+# Run it
 
+for windows `start.bat`
 
-Build the container using the Dockerfile:
+for linux / mac `./start.sh`
 
-```
-docker build . -t octant
-```
+The above will build the docker container, run it and provide shell/bash access in the container.
 
-**There are two ways to run it**
+Then to start octant run `merlin -o`
 
-### for k8s clusters with accessible k8s api endpoint
+The merlin tool baked in this container also has few utility tool. run `merlin --help` to view other options.
 
-`docker run -it --rm -p 51234:51234 -v ${PWD}:/root/ --name octant octant`
-
-### for remote clusters over ssh tunnel
-
-`docker run -it --rm -p 51234:51234 -v ${PWD}:/root/ --add-host kubernetes:127.0.0.1 --name octant octant`
-
-How / Why so? Read here: https://github.com/alinahid477/VMW/tree/main/tunnel
-
-## This container for TMC provisioned clusters
-The main reason why I am not running this container in background mode is so that when I am accessing TMC supplied kubeconfig yaml (or merged yamls) for octant it will 
-- make use TMC cli 
-- and ask for TMC api token
-
-This will show up in the command prompt. Supply the token when asked.
+You can also use kubectl commands in the shell/bash prompt. To access docker's shell/bash prompt in a different window run `docker exec -it merlin-octant /bin/bash`.
 
 # That's it.
 You should now have octact running on port 51234.
